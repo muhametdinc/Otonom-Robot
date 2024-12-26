@@ -1,83 +1,147 @@
-// Motor Sürücü Pinleri
-int pwm1 = 5; // RPWM pinine bağlı, motorun sağa dönmesini sağlar
-int pwm2 = 6; // LPWM pinine bağlı, motorun sola dönmesini sağlar
-int enablePin = 7; // Motor sürücüyü aktif hale getiren pin
+#include <Adafruit_TCS34725.h> // Adafruit TCS34725 kütüphanesi dahil edilir (RGB renk sensörü için)
 
-// Ultrasonik Sensör Pinleri
-int trigPin = 2; // Ultrasonik sensörün trig (tetikleme) pini
-int echoPin = 3; // Ultrasonik sensörün echo (yansıma) pini
+// Entegrasyon zamanı ve kazanç değerleri (Renk sensörü için)
+#define TCS34725_INTEGRATIONTIME_700MS 0xF6 // Entegrasyon zamanı (verilerin toplanma süresi)
+#define TCS34725_GAIN_1X 0x00 // Kazanç ayarı (düşük ışık için hassasiyet)
 
-// Çizgi Takip Sensörü (QTR-8RC) Pinleri
-int qtrPins[] = {8, 9, 10, 11, 12,}; // Çizgi sensörlerinin bağlı olduğu pinler
 
-// RGB Renk Sensörü Pinleri
-int sdaPin = A4; // I2C veri (data) pini
-int sclPin = A5; // I2C saat (clock) pini
+// Motor pinlerinin tanımlanması
+int motorR1 = 3; // Sağ ön motor pini
+int motorR2 = 4; // Sağ arka motor pini
+int motorL1 = 5; // Sol ön motor pini
+int motorL2 = 6; // Sol arka motor pini
+int motorSurucu = 2; // Motor sürücü pini (aktif/deaktif kontrol)
 
-// Wi-Fi Modülü Pinleri
-int espRx = 18; // Wi-Fi modülünün RX (alıcı) pini
-int espTx = 19; // Wi-Fi modülünün TX (verici) pini
+// Ultrasonik sensör pinlerinin tanımlanması
+const int uTrig = 7; // Ultrasonik sensör sinyal gönderme pini
+const int uEcho = 8; // Ultrasonik sensör echo pini (yansıyan sinyali algılar)
 
-// Genel Değişkenler
-int motorSpeed = 150; // Motor hızı (0-255 arasında değer alır)
-int obstacleDistance = 15; // Engel algılama mesafesi (cm)
+// Çizgi takip sensörlerinin bağlı olduğu pinler
+int qtrPin[] = {9, 10, 11, 12, 13}; // Çizgi sensör pinleri dizi olarak tanımlanır
+
+// Motor ve sensör ayarları
+int motorHizi = 150; // Motor hızı (PWM değeri)
+int engelAlgila = 15; // Engel algılama mesafesi (cm)
+
+// Adafruit TCS34725 nesnesi (Renk sensörü için)
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X); 
 
 void setup() {
-  // Motor Sürücü Ayarları
-  pinMode(pwm1, OUTPUT); // pwm1 pini çıkış olarak ayarlandı
-  pinMode(pwm2, OUTPUT); // pwm2 pini çıkış olarak ayarlandı
-  pinMode(enablePin, OUTPUT); // enablePin pini çıkış olarak ayarlandı
-  digitalWrite(enablePin, HIGH); // Motor sürücü aktif hale getirildi
+  // Motor pinlerini çıkış olarak ayarlama
+  pinMode(motorR1, OUTPUT); 
+  pinMode(motorR2, OUTPUT); 
+  pinMode(motorL1, OUTPUT); 
+  pinMode(motorL2, OUTPUT); 
 
-  // Ultrasonik Sensör Ayarları
-  pinMode(trigPin, OUTPUT); // trigPin pini çıkış olarak ayarlandı
-  pinMode(echoPin, INPUT); // echoPin pini giriş olarak ayarlandı
+  // Ultrasonik sensör pinlerini ayarlama
+  pinMode(uTrig, OUTPUT); 
+  pinMode(uEcho, INPUT); 
 
-  // Çizgi Takip Sensörü Ayarları
+  // Motor sürücü pinini aktif hale getirme
+  pinMode(motorSurucu, OUTPUT); 
+  digitalWrite(motorSurucu, HIGH); // Motor sürücüyü aktif eder
+
+  // Çizgi sensör pinlerini giriş olarak ayarlama
   for (int i = 0; i < 5; i++) { 
-    pinMode(qtrPins[i], INPUT); // Çizgi sensörü pinleri giriş olarak ayarlandı
+    pinMode(qtrPin[i], INPUT); 
   }
 
-  // Serial Port Ayarları
-  Serial.begin(9600); // Seri haberleşme başlatıldı
+  
+  Serial.begin(9600); 
+
+  // Renk sensörünün başlatılmasını kontrol etme
+  if (tcs.begin()) {
+    Serial.println("TCS34725 Renk Sensörü algılandı."); // Sensör algılandı
+  } else {
+    Serial.println("TCS34725 algılanamadı. Bağlantıları kontrol edin."); // Sensör algılanmadı
+    while (1); // Sensör algılanmazsa kod burada durur
+  }
 }
 
 void loop() {
-  // Ultrasonik Sensör Mesafe Ölçümü
-  int distance = measureDistance(); // measureDistance fonksiyonu çağrılarak mesafe ölçülür
-  Serial.print("Engel Mesafesi: "); // Mesafeyi terminalde yazdırmak için
-  Serial.println(distance); // Ölçülen mesafe terminale yazdırılır
+  // Mesafe ölçüm fonksiyonunu çağırarak mesafeyi hesapla
+  int mesafe = mesafeOlc(); 
+  Serial.print("Engel Mesafesi: "); 
+  Serial.println(mesafe); 
 
-  // Engel Kontrolü
-  if (distance <= obstacleDistance) { // Eğer engel mesafesi belirlenen sınırdan küçükse
-    stopMotors(); // Motorları durdur
-    Serial.println("Engel Algılandı. Motorlar durduruldu."); // Terminale bilgi yazdır
+  // Engel algılamayı kontrol et
+  if (mesafe <= engelAlgila) { 
+    motorStop(); // Engel algılandıysa motorları durdur
+    Serial.println("Motorlar Durdu."); 
   } else { 
-    moveForward(); // Engel yoksa motorları ileri hareket ettir
-    Serial.println("Motorlar Çalışıyor."); // Terminale bilgi yazdır
+    motorMove(); // Engel yoksa motorları çalıştır
+    Serial.println("Motorlar Çalışıyor."); 
   }
 
-  delay(100); // 100 ms bekleme
+  // Renk algılama fonksiyonunu çağır
+  renkAlgila();
 }
 
-void moveForward() {
-  analogWrite(pwm1, motorSpeed); // pwm1 pinine motor hızı kadar PWM sinyali gönder
-  analogWrite(pwm2, motorSpeed); // pwm2 pinine motor hızı kadar PWM sinyali gönder
+void motorMove() {
+  // Motorları ileri sürmek için gerekli pinlere HIGH sinyali gönder
+  digitalWrite(motorR1, HIGH); 
+  digitalWrite(motorR2, HIGH); 
+  digitalWrite(motorL1, HIGH); 
+  digitalWrite(motorL2, HIGH); 
 }
 
-void stopMotors() {
-  analogWrite(pwm1, 0); // pwm1 pinine 0 gönder (motor durur)
-  analogWrite(pwm2, 0); // pwm2 pinine 0 gönder (motor durur)
+void motorStop() {
+  // Motorları durdurmak için gerekli pinlere LOW sinyali gönder
+  digitalWrite(motorR1, LOW); 
+  digitalWrite(motorR2, LOW); 
+  digitalWrite(motorL1, LOW); 
+  digitalWrite(motorL2, LOW); 
 }
 
-int measureDistance() {
-  digitalWrite(trigPin, LOW); // Trig pinini LOW yap (sensörü sıfırlamak için)
-  delayMicroseconds(2); // 2 mikro saniye bekleme
-  digitalWrite(trigPin, HIGH); // Trig pinini HIGH yap (sensörü tetiklemek için)
-  delayMicroseconds(10); // 10 mikro saniye bekleme
-  digitalWrite(trigPin, LOW); // Trig pinini tekrar LOW yap
-
-  long duration = pulseIn(echoPin, HIGH); // Echo pininden gelen sinyal süresini ölç
-  int distance = duration * 0.034 / 2; // Süreyi mesafeye dönüştür (cm cinsinden)
-  return distance; // Ölçülen mesafeyi geri döndür
+void sagDonus() {
+  // Sağ dönüş için sağ motorları durdur, sol motorları çalıştır
+  digitalWrite(motorR1, LOW); 
+  digitalWrite(motorR2, LOW); 
+  digitalWrite(motorL1, HIGH); 
+  digitalWrite(motorL2, HIGH); 
 }
+
+void solDonus() {
+  // Sol dönüş için sol motorları durdur, sağ motorları çalıştır
+  digitalWrite(motorR1, HIGH); 
+  digitalWrite(motorR2, HIGH); 
+  digitalWrite(motorL1, LOW); 
+  digitalWrite(motorL2, LOW); 
+}
+
+int mesafeOlc() {
+  // Ultrasonik sensör ile mesafe ölçümü
+  digitalWrite(uTrig, LOW); // Düşük sinyal gönder (başlatma öncesi)
+  delayMicroseconds(2); 
+  digitalWrite(uTrig, HIGH); // Sinyal gönder
+  delayMicroseconds(10); 
+  digitalWrite(uTrig, LOW); // Sinyali kapat
+
+  // Echo pininden yansıyan sinyal süresini ölç
+  long sure = pulseIn(uEcho, HIGH); 
+  int mesafe = sure * 0.034 / 2; // Süreyi cm'ye dönüştür
+  return mesafe; 
+}
+
+void renkAlgila() {
+  // Renk sensöründen RGB değerlerini okuma
+  uint16_t r, g, b, c; 
+  tcs.getRawData(&r, &g, &b, &c); // Sensörden RGB ve toplam değerleri al
+
+  // RGB değerlerini seri monitöre yazdır
+  Serial.print("R: ");
+  Serial.print(r);
+  Serial.print(" G: ");
+  Serial.print(g);
+  Serial.print(" B: ");
+  Serial.print(b);
+  Serial.print(" C: ");
+  Serial.println(c);
+
+  // Renk algılama mantığı (örneğin, kırmızı algılama)
+  if (r > g && r > b && r > 1000) { // Kırmızı renk eşiği
+    Serial.println("Kırmızı renk algılandı!");
+    motorStop(); // Kırmızı renk algılandıysa motorları durdur
+  }
+}
+
