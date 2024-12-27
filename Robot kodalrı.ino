@@ -1,9 +1,9 @@
-#include <Adafruit_TCS34725.h> // Adafruit TCS34725 kütüphanesi dahil edilir (RGB renk sensörü için)
+// Adafruit TCS34725 kütüphanesi dahil edilir (RGB renk sensörü için)
+#include <Adafruit_TCS34725.h>
 
-// Entegrasyon zamanı ve kazanç değerleri (Renk sensörü için)
+// Entegrasyon zamanı ve kazanç değerleri (Renk sensörü için tanımlanır)
 #define TCS34725_INTEGRATIONTIME_700MS 0xF6 // Entegrasyon zamanı (verilerin toplanma süresi)
 #define TCS34725_GAIN_1X 0x00 // Kazanç ayarı (düşük ışık için hassasiyet)
-
 
 // Motor pinlerinin tanımlanması
 int motorR1 = 3; // Sağ ön motor pini
@@ -24,124 +24,134 @@ int motorHizi = 150; // Motor hızı (PWM değeri)
 int engelAlgila = 15; // Engel algılama mesafesi (cm)
 
 // Adafruit TCS34725 nesnesi (Renk sensörü için)
-Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X); 
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);
+
+// Robotun başlangıç pozisyonu ve hedef istasyonu
+int mevcutIstasyon = 1; // Robotun bulunduğu istasyon
+int hedefIstasyon = 1; // Varsayılan olarak mevcut istasyon
 
 void setup() {
-  // Motor pinlerini çıkış olarak ayarlama
-  pinMode(motorR1, OUTPUT); 
-  pinMode(motorR2, OUTPUT); 
-  pinMode(motorL1, OUTPUT); 
-  pinMode(motorL2, OUTPUT); 
+  // Motor pinlerini çıkış olarak ayarla
+  pinMode(motorR1, OUTPUT);
+  pinMode(motorR2, OUTPUT);
+  pinMode(motorL1, OUTPUT);
+  pinMode(motorL2, OUTPUT);
 
-  // Ultrasonik sensör pinlerini ayarlama
-  pinMode(uTrig, OUTPUT); 
-  pinMode(uEcho, INPUT); 
+  // Ultrasonik sensör pinlerini ayarla
+  pinMode(uTrig, OUTPUT);
+  pinMode(uEcho, INPUT);
 
-  // Motor sürücü pinini aktif hale getirme
-  pinMode(motorSurucu, OUTPUT); 
+  // Motor sürücü pinini aktif hale getir
+  pinMode(motorSurucu, OUTPUT);
   digitalWrite(motorSurucu, HIGH); // Motor sürücüyü aktif eder
 
-  // Çizgi sensör pinlerini giriş olarak ayarlama
-  for (int i = 0; i < 5; i++) { 
-    pinMode(qtrPin[i], INPUT); 
+  // Çizgi sensör pinlerini giriş olarak ayarla
+  for (int i = 0; i < 5; i++) {
+    pinMode(qtrPin[i], INPUT);
   }
 
-  
-  Serial.begin(9600); 
+  // Seri haberleşmeyi başlat
+  Serial.begin(9600);
 
-  // Renk sensörünün başlatılmasını kontrol etme
+  // Renk sensörünün başlatılmasını kontrol et
   if (tcs.begin()) {
-    Serial.println("TCS34725 Renk Sensörü algılandı."); // Sensör algılandı
+    Serial.println("TCS34725 Renk Sensörü algılandı.");
   } else {
-    Serial.println("TCS34725 algılanamadı. Bağlantıları kontrol edin."); // Sensör algılanmadı
-    while (1); // Sensör algılanmazsa kod burada durur
+    Serial.println("TCS34725 algılanamadı. Bağlantıları kontrol edin.");
+    while (1);
   }
 }
 
 void loop() {
-  // Mesafe ölçüm fonksiyonunu çağırarak mesafeyi hesapla
-  int mesafe = mesafeOlc(); 
-  Serial.print("Engel Mesafesi: "); 
-  Serial.println(mesafe); 
-
-  // Engel algılamayı kontrol et
-  if (mesafe <= engelAlgila) { 
-    motorStop(); // Engel algılandıysa motorları durdur
-    Serial.println("Motorlar Durdu."); 
-  } else { 
-    motorMove(); // Engel yoksa motorları çalıştır
-    Serial.println("Motorlar Çalışıyor."); 
+  // Hedef istasyon bilgisi kontrol edilir
+  if (hedefIstasyon != mevcutIstasyon) {
+    istasyonaGit(hedefIstasyon); // Hedef istasyona gitmek için fonksiyon çağrılır
   }
 
-  // Renk algılama fonksiyonunu çağır
-  renkAlgila();
+  delay(100); // Döngüyü stabilize etmek için gecikme
+}
+
+void istasyonaGit(int hedef) {
+  // İstasyonlar arasında hareket için izlenecek algoritma
+  if (mevcutIstasyon == 1 && hedef == 2) {
+    // 1'den 2'ye gitmek için mavi ve sarı çizgiyi takip et
+    cizgiTakip("mavi");
+    cizgiTakip("sari");
+  } else if (mevcutIstasyon == 2 && hedef == 3) {
+    // 2'den 3'e gitmek için sarı ve yeşil çizgiyi takip et
+    cizgiTakip("sari");
+    cizgiTakip("yesil");
+  } else if (mevcutIstasyon == 3 && hedef == 4) {
+    // 3'ten 4'e gitmek için yeşil ve turuncu çizgiyi takip et
+    cizgiTakip("yesil");
+    cizgiTakip("turuncu");
+  } else if (mevcutIstasyon == 4 && hedef == 1) {
+    // 4'ten 1'e gitmek için turuncu ve mavi çizgiyi takip et
+    cizgiTakip("turuncu");
+    cizgiTakip("mavi");
+  }
+
+  mevcutIstasyon = hedef; // Yeni istasyonu mevcut olarak ayarla
+}  
+
+void cizgiTakip(String renk) {
+  // Belirtilen rengi takip eder
+  Serial.print(renk);
+  Serial.println(" çizgisi takip ediliyor...");
+
+  // Çizgi takip algoritması burada tanımlanabilir
+  // Çizgi sensörlerinden okuma yap ve motorları kontrol et
+  // Detaylı kontrol için çizgi algılama algoritması entegre edilir
+
+  delay(2000); // Geçici simülasyon gecikmesi (çizgi takibi simülasyonu)
 }
 
 void motorMove() {
   // Motorları ileri sürmek için gerekli pinlere HIGH sinyali gönder
-  digitalWrite(motorR1, HIGH); 
-  digitalWrite(motorR2, HIGH); 
-  digitalWrite(motorL1, HIGH); 
-  digitalWrite(motorL2, HIGH); 
+  digitalWrite(motorR1, HIGH);
+  digitalWrite(motorR2, HIGH);
+  digitalWrite(motorL1, HIGH);
+  digitalWrite(motorL2, HIGH);
 }
 
 void motorStop() {
   // Motorları durdurmak için gerekli pinlere LOW sinyali gönder
-  digitalWrite(motorR1, LOW); 
-  digitalWrite(motorR2, LOW); 
-  digitalWrite(motorL1, LOW); 
-  digitalWrite(motorL2, LOW); 
-}
-
-void sagDonus() {
-  // Sağ dönüş için sağ motorları durdur, sol motorları çalıştır
-  digitalWrite(motorR1, LOW); 
-  digitalWrite(motorR2, LOW); 
-  digitalWrite(motorL1, HIGH); 
-  digitalWrite(motorL2, HIGH); 
-}
-
-void solDonus() {
-  // Sol dönüş için sol motorları durdur, sağ motorları çalıştır
-  digitalWrite(motorR1, HIGH); 
-  digitalWrite(motorR2, HIGH); 
-  digitalWrite(motorL1, LOW); 
-  digitalWrite(motorL2, LOW); 
-}
-
-int mesafeOlc() {
-  // Ultrasonik sensör ile mesafe ölçümü
-  digitalWrite(uTrig, LOW); // Düşük sinyal gönder (başlatma öncesi)
-  delayMicroseconds(2); 
-  digitalWrite(uTrig, HIGH); // Sinyal gönder
-  delayMicroseconds(10); 
-  digitalWrite(uTrig, LOW); // Sinyali kapat
-
-  // Echo pininden yansıyan sinyal süresini ölç
-  long sure = pulseIn(uEcho, HIGH); 
-  int mesafe = sure * 0.034 / 2; // Süreyi cm'ye dönüştür
-  return mesafe; 
+  digitalWrite(motorR1, LOW);
+  digitalWrite(motorR2, LOW);
+  digitalWrite(motorL1, LOW);
+  digitalWrite(motorL2, LOW);
 }
 
 void renkAlgila() {
-  // Renk sensöründen RGB değerlerini okuma
-  uint16_t r, g, b, c; 
-  tcs.getRawData(&r, &g, &b, &c); // Sensörden RGB ve toplam değerleri al
+  uint16_t r, g, b, c;
+  tcs.getRawData(&r, &g, &b, &c); // Renk sensöründen ham değerleri oku
 
-  // RGB değerlerini seri monitöre yazdır
-  Serial.print("R: ");
-  Serial.print(r);
-  Serial.print(" G: ");
-  Serial.print(g);
-  Serial.print(" B: ");
-  Serial.print(b);
-  Serial.print(" C: ");
-  Serial.println(c);
+  // Normalizasyon
+  float rNorm = (float)r / c;
+  float gNorm = (float)g / c;
+  float bNorm = (float)b / c;
 
-  // Renk algılama mantığı (örneğin, kırmızı algılama)
-  if (r > g && r > b && r > 1000) { // Kırmızı renk eşiği
-    Serial.println("Kırmızı renk algılandı!");
-    motorStop(); // Kırmızı renk algılandıysa motorları durdur
+  // Normalleştirilmiş RGB değerlerini seri monitöre yazdır
+  Serial.print("R: "); Serial.print(rNorm, 2);
+  Serial.print(" G: "); Serial.print(gNorm, 2);
+  Serial.print(" B: "); Serial.println(bNorm, 2);
+
+  // Renk algılama mantığı
+  if (rNorm > 0.4 && gNorm > 0.4 && bNorm < 0.2) {
+    Serial.println("Sarı renk algılandı!");
+  } else if (rNorm > 0.5 && gNorm < 0.3 && bNorm < 0.2) {
+    Serial.println("Turuncu renk algılandı!");
+  } else if (bNorm > 0.5 && rNorm < 0.3 && gNorm < 0.3) {
+    Serial.println("Mavi renk algılandı!");
+  } else if (gNorm > 0.5 && rNorm < 0.3 && bNorm < 0.3) {
+    Serial.println("Yeşil renk algılandı!");
+  } else {
+    Serial.println("Renk algılanamadı veya bilinmeyen renk.");
   }
 }
+
+
+
+
+
 
