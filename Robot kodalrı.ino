@@ -23,6 +23,13 @@ int qtrPin[] = {9, 10, 11, 12, 13}; // Çizgi sensör pinleri dizi olarak tanım
 int motorHizi = 150; // Motor hızı (PWM değeri)
 int engelAlgila = 15; // Engel algılama mesafesi (cm)
 
+// PID kontrol değişkenleri
+float kp = 1.0;  // Oransal kazanç
+float ki = 0.0;  // İntegral kazanç
+float kd = 0.5;  // Türev kazanç
+float integral = 0.0;
+float lastError = 0.0;
+
 // Adafruit TCS34725 nesnesi (Renk sensörü için)
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);
 
@@ -116,14 +123,22 @@ void cizgiTakip(String renk) {
       sensorValues[i] = digitalRead(qtrPin[i]);
     }
 
-    if (sensorValues[0] == HIGH && sensorValues[4] == HIGH) {
-      motorControl(motorHizi, motorHizi); // İleri
-    } else if (sensorValues[0] == HIGH) {
-      motorControl(motorHizi / 2, motorHizi); // Hafif sola dönüş
-    } else if (sensorValues[4] == HIGH) {
-      motorControl(motorHizi, motorHizi / 2); // Hafif sağa dönüş
-    } else {
-      motorControl(0, 0); // Çizgi kaybolursa dur
+    // Hata hesaplama (PID için)
+    float error = (sensorValues[0] * -2) + (sensorValues[1] * -1) + (sensorValues[3] * 1) + (sensorValues[4] * 2);
+    integral += error;
+    float derivative = error - lastError;
+    float pid = (kp * error) + (ki * integral) + (kd * derivative);
+    lastError = error;
+
+    // Motor hızlarını PID ile ayarla
+    int solHiz = motorHizi + pid;
+    int sagHiz = motorHizi - pid;
+
+    motorControl(constrain(solHiz, 0, 255), constrain(sagHiz, 0, 255));
+
+    // Çizgi kaybolursa dur
+    if (sensorValues[0] == LOW && sensorValues[1] == LOW && sensorValues[2] == LOW && sensorValues[3] == LOW && sensorValues[4] == LOW) {
+      motorControl(0, 0);
       break;
     }
   }
@@ -188,3 +203,4 @@ void engelKontrol() {
     motorControl(0, 0);
   }
 }
+
