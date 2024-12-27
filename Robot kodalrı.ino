@@ -136,6 +136,18 @@ void motorControl(int solHiz, int sagHiz) {
   analogWrite(motorR2, 0);
 }
 
+void sagDonus() {
+  motorControl(motorHizi, 0); // Sol tekerleği hareket ettir, sağ tekerleği durdur
+  delay(500); // Dönüş süresi, ihtiyaca göre ayarlanabilir
+  motorControl(0, 0); // Dönüş sonrası dur
+}
+
+void solDonus() {
+  motorControl(0, motorHizi); // Sağ tekerleği hareket ettir, sol tekerleği durdur
+  delay(500); // Dönüş süresi, ihtiyaca göre ayarlanabilir
+  motorControl(0, 0); // Dönüş sonrası dur
+}
+
 void renkAlgila() {
   uint16_t r, g, b, c;
   tcs.getRawData(&r, &g, &b, &c); // Renk sensöründen ham değerleri oku
@@ -161,7 +173,18 @@ void renkAlgila() {
   }
 }
 
+void engelKontrol() {
+  digitalWrite(uTrig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(uTrig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(uTrig, LOW);
 
+  long sure = pulseIn(uEcho, HIGH);
+  int mesafe = sure / 58.2;
 
-
-
+  if (mesafe < engelAlgila) {
+    Serial.println("Engel algılandı! Duruluyor...");
+    motorControl(0, 0);
+  }
+}
