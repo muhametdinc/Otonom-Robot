@@ -74,69 +74,80 @@ void loop() {
 void istasyonaGit(int hedef) {
   // İstasyonlar arasında hareket için izlenecek algoritma
   if (mevcutIstasyon == 1 && hedef == 2) {
-    // 1'den 2'ye gitmek için mavi ve sarı çizgiyi takip et
     cizgiTakip("mavi");
     cizgiTakip("sari");
   } else if (mevcutIstasyon == 2 && hedef == 3) {
-    // 2'den 3'e gitmek için sarı ve yeşil çizgiyi takip et
     cizgiTakip("sari");
     cizgiTakip("yesil");
   } else if (mevcutIstasyon == 3 && hedef == 4) {
-    // 3'ten 4'e gitmek için yeşil ve turuncu çizgiyi takip et
     cizgiTakip("yesil");
     cizgiTakip("turuncu");
   } else if (mevcutIstasyon == 4 && hedef == 1) {
-    // 4'ten 1'e gitmek için turuncu ve mavi çizgiyi takip et
     cizgiTakip("turuncu");
     cizgiTakip("mavi");
+  } else if (mevcutIstasyon == 1 && hedef == 3) {
+    cizgiTakip("mavi");
+    cizgiTakip("sari");
+    cizgiTakip("yesil");
+  } else if (mevcutIstasyon == 2 && hedef == 4) {
+    cizgiTakip("sari");
+    cizgiTakip("yesil");
+    cizgiTakip("turuncu");
+  } else if (mevcutIstasyon == 3 && hedef == 1) {
+    cizgiTakip("yesil");
+    cizgiTakip("turuncu");
+    cizgiTakip("mavi");
+  } else if (mevcutIstasyon == 4 && hedef == 2) {
+    cizgiTakip("turuncu");
+    cizgiTakip("mavi");
+    cizgiTakip("sari");
   }
 
   mevcutIstasyon = hedef; // Yeni istasyonu mevcut olarak ayarla
 }  
 
 void cizgiTakip(String renk) {
-  // Belirtilen rengi takip eder
   Serial.print(renk);
   Serial.println(" çizgisi takip ediliyor...");
 
-  // Çizgi takip algoritması burada tanımlanabilir
-  // Çizgi sensörlerinden okuma yap ve motorları kontrol et
-  // Detaylı kontrol için çizgi algılama algoritması entegre edilir
+  while (true) {
+    int sensorValues[5];
+    for (int i = 0; i < 5; i++) {
+      sensorValues[i] = digitalRead(qtrPin[i]);
+    }
 
-  delay(2000); // Geçici simülasyon gecikmesi (çizgi takibi simülasyonu)
+    if (sensorValues[0] == HIGH && sensorValues[4] == HIGH) {
+      motorControl(motorHizi, motorHizi); // İleri
+    } else if (sensorValues[0] == HIGH) {
+      motorControl(motorHizi / 2, motorHizi); // Hafif sola dönüş
+    } else if (sensorValues[4] == HIGH) {
+      motorControl(motorHizi, motorHizi / 2); // Hafif sağa dönüş
+    } else {
+      motorControl(0, 0); // Çizgi kaybolursa dur
+      break;
+    }
+  }
 }
 
-void motorMove() {
-  // Motorları ileri sürmek için gerekli pinlere HIGH sinyali gönder
-  digitalWrite(motorR1, HIGH);
-  digitalWrite(motorR2, HIGH);
-  digitalWrite(motorL1, HIGH);
-  digitalWrite(motorL2, HIGH);
-}
-
-void motorStop() {
-  // Motorları durdurmak için gerekli pinlere LOW sinyali gönder
-  digitalWrite(motorR1, LOW);
-  digitalWrite(motorR2, LOW);
-  digitalWrite(motorL1, LOW);
-  digitalWrite(motorL2, LOW);
+void motorControl(int solHiz, int sagHiz) {
+  analogWrite(motorL1, solHiz);
+  analogWrite(motorL2, 0);
+  analogWrite(motorR1, sagHiz);
+  analogWrite(motorR2, 0);
 }
 
 void renkAlgila() {
   uint16_t r, g, b, c;
   tcs.getRawData(&r, &g, &b, &c); // Renk sensöründen ham değerleri oku
 
-  // Normalizasyon
   float rNorm = (float)r / c;
   float gNorm = (float)g / c;
   float bNorm = (float)b / c;
 
-  // Normalleştirilmiş RGB değerlerini seri monitöre yazdır
   Serial.print("R: "); Serial.print(rNorm, 2);
   Serial.print(" G: "); Serial.print(gNorm, 2);
   Serial.print(" B: "); Serial.println(bNorm, 2);
 
-  // Renk algılama mantığı
   if (rNorm > 0.4 && gNorm > 0.4 && bNorm < 0.2) {
     Serial.println("Sarı renk algılandı!");
   } else if (rNorm > 0.5 && gNorm < 0.3 && bNorm < 0.2) {
@@ -149,7 +160,6 @@ void renkAlgila() {
     Serial.println("Renk algılanamadı veya bilinmeyen renk.");
   }
 }
-
 
 
 
