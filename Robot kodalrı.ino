@@ -1,3 +1,10 @@
+/#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// LCD ekran nesnesi (I2C adres: 0x27, satır: 2, sütun: 16)
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+
 // Adafruit TCS34725 kütüphanesi dahil edilir (RGB renk sensörü için)
 #include <Adafruit_TCS34725.h>
 
@@ -57,9 +64,6 @@ void setup() {
     pinMode(qtrPin[i], INPUT);
   }
 
-  // Seri haberleşmeyi başlat
-  Serial.begin(9600);
-
   // Renk sensörünün başlatılmasını kontrol et
   if (tcs.begin()) {
     Serial.println("TCS34725 Renk Sensörü algılandı."); // Sensör algılandıysa mesaj yazdır
@@ -67,6 +71,17 @@ void setup() {
     Serial.println("TCS34725 algılanamadı. Bağlantıları kontrol edin."); // Sensör algılanamadıysa hata mesajı yazdır
     while (1); // Sonsuz döngüye girerek sistemi durdur
   }
+
+  // LCD ekranı başlat
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Renk Sensoru...");
+  delay(2000);
+  lcd.clear();
+
+  Serial.begin(9600);
+
 }
 
 void loop() {
@@ -202,4 +217,33 @@ void engelKontrol() {
     Serial.println("Engel algılandı! Duruluyor..."); // Engel algılandığında mesaj yazdır
     motorControl(0, 0); // Motorları durdur
   }
+}
+
+void renkAlgila(float rNorm, float gNorm, float bNorm) {
+  lcd.clear();
+  lcd.setCursor(0, 0); // İlk satıra yaz
+
+  // Algılanan renk bilgisi
+  if (rNorm > 0.4 && gNorm < 0.3 && bNorm < 0.3) {
+    lcd.print("KIRMIZI Algilandi");
+  } else if (rNorm > 0.4 && gNorm > 0.4 && bNorm < 0.2) {
+    lcd.print("SARI Algilandi ");
+  } else if (bNorm > 0.5 && rNorm < 0.3 && gNorm < 0.3) {
+    lcd.print("MAVI Algilandi ");
+  } else if (gNorm > 0.5 && rNorm < 0.3 && bNorm < 0.3) {
+    lcd.print("YESIL Algilandi");
+  } else {
+    lcd.print("Renk Algilanamadi");
+  }
+
+  // İkinci satıra RGB oranlarını yaz
+  lcd.setCursor(0, 1);
+  lcd.print("R: ");
+  lcd.print(rNorm, 2);
+  lcd.print(" G: ");
+  lcd.print(gNorm, 2);
+  lcd.print(" B: ");
+  lcd.print(bNorm, 2);
+
+  delay(1000); // Ekranda gösterim süresi
 }
