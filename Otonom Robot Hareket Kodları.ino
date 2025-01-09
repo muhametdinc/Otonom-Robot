@@ -11,7 +11,7 @@
 
 // ========================= SENSÖR AYARLARI =========================
 // Renk sensörü nesnesi oluştur
-Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_600MS, TCS34725_GAIN_1X);
 
 // ========================= MOTOR PIN TANIMLARI =========================
 // Sağ motor hız kontrol pini - PWM sinyali ile motorun hızını ayarlar (0-255 arası değer)
@@ -63,8 +63,8 @@ int motorHizi = VARSAYILAN_HIZ;
 const int engelAlgila = 16;      
 
 // ========================= RENK SENSÖRÜ TANIMLAMASI =========================
-// TCS34725 renk sensörü nesnesi - Sensörle iletişim kurmak için kullanılır
-Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);
+// Bu satırı siliyoruz çünkü yukarıda zaten tanımlanmış
+// Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);
 
 // ========================= KONUM BİLGİLERİ =========================
 // Robotun şu an bulunduğu istasyon numarası - 0 başlangıç noktasını temsil eder
