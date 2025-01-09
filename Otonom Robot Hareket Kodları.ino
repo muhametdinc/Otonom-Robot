@@ -9,48 +9,33 @@
 #include <QTRSensors.h>            
 #include <Wire.h>                  // I2C haberleşme için gerekli
 
+// ========================= MOTOR PIN TANIMLARI =========================
+// Sağ motor sürücü pinleri (BTS7960B)
+const int motorSagRPWM = 2;     // Sağ motor ileri PWM
+const int motorSagLPWM = 3;     // Sağ motor geri PWM
+const int motorSagREN = 4;      // Sağ motor ileri enable
+const int motorSagLEN = 8;      // Sağ motor geri enable
+
+// Sol motor sürücü pinleri (BTS7960B)
+const int motorSolRPWM = 5;     // Sol motor ileri PWM
+const int motorSolLPWM = 6;     // Sol motor geri PWM
+const int motorSolREN = 7;      // Sol motor ileri enable
+const int motorSolLEN = 9;      // Sol motor geri enable
+
+// ========================= ULTRASONİK SENSÖR PIN TANIMLARI =========================
+const int uTrig = 10;     // Ultrasonik trigger pin
+const int uEcho = 11;     // Ultrasonik echo pin
+
+// ========================= ÇİZGİ SENSÖR AYARLARI =========================
+// Çizgi sensörleri için dijital pinler (soldan sağa)
+int qtrPin[] = {22, 23, 24, 25, 26, 27, 28, 29};  // Dijital pinler
+
+// Kullanılan çizgi sensörü sayısı
+const int sensorSayisi = 8;     // Toplam sensör sayısı
+
 // ========================= SENSÖR AYARLARI =========================
 // Renk sensörü nesnesi oluştur
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_600MS, TCS34725_GAIN_1X);
-
-// ========================= MOTOR PIN TANIMLARI =========================
-// Sağ motor hız kontrol pini - PWM sinyali ile motorun hızını ayarlar (0-255 arası değer)
-const int motorR = 25;          
-
-// Sol motor hız kontrol pini - PWM sinyali ile motorun hızını ayarlar (0-255 arası değer)
-const int motorL = 26;          
-
-// Sağ motor yön kontrol pini - HIGH/LOW değerleri ile motorun dönüş yönünü belirler
-const int motorSurucuSag = 27;  
-
-// Sol motor yön kontrol pini - HIGH/LOW değerleri ile motorun dönüş yönünü belirler
-const int motorSurucuSol = 14;  
-
-// Motor sürücü enable pin tanımı
-const int motorDriverEN = 13;  
-
-// Batarya voltaj ölçüm pini
-const int batteryPin = 35;  
-
-// ========================= ULTRASONİK SENSÖR PIN TANIMLARI =========================
-// Ultrasonik sensörün sinyal gönderen pini - Ses dalgasını göndermek için kullanılır
-const int uTrig = 32;     
-
-// Ultrasonik sensörün sinyal alan pini - Yansıyan ses dalgasını algılamak için kullanılır
-const int uEcho = 33;     
-
-// ========================= ÇİZGİ SENSÖR AYARLARI =========================
-// Çizgi sensörlerinin bağlı olduğu pinler - Her bir sensör zemin üzerindeki çizgiyi algılar
-int qtrPin[] = {15, 2, 4, 5, 18, 19, 21, 22};  
-
-// Kullanılan çizgi sensörü sayısı - Toplam 8 adet sensör kullanılıyor
-const int sensorSayisi = 8;     
-
-// Kızılötesi sensör pini - Ek algılama için kullanılır
-const int irSensorPin = 34;     
-
-// Her bir sensörden okunan değerlerin saklandığı dizi - Anlık sensör değerlerini tutar
-int sensorDegerleri[8];         
 
 // ========================= HAREKET PARAMETRELERİ =========================
 // Motorların varsayılan çalışma hızı - 0-255 arası bir değer (PWM)
@@ -146,7 +131,7 @@ Istasyon istasyonlar[] = {
 
 // Setup fonksiyonu - Program başladığında bir kez çalışır
 void setup() {
-    // Seri haberleşmeyi başlat - Debug mesajları için
+    // Seri haberleşmeyi başlat
     Serial.begin(115200);  
     
     // I2C başlatma
@@ -154,16 +139,26 @@ void setup() {
     Wire.setClock(100000);  
 
     // Motor pinlerini ayarla
-    pinMode(motorR, OUTPUT);
-    pinMode(motorL, OUTPUT);
-    pinMode(motorSurucuSag, OUTPUT);
-    pinMode(motorSurucuSol, OUTPUT);
-    pinMode(motorDriverEN, OUTPUT);
+    pinMode(motorSagRPWM, OUTPUT);
+    pinMode(motorSagLPWM, OUTPUT);
+    pinMode(motorSagREN, OUTPUT);
+    pinMode(motorSagLEN, OUTPUT);
+    pinMode(motorSolRPWM, OUTPUT);
+    pinMode(motorSolLPWM, OUTPUT);
+    pinMode(motorSolREN, OUTPUT);
+    pinMode(motorSolLEN, OUTPUT);
     
-    // Motorları aktif et
-    digitalWrite(motorSurucuSag, HIGH);  
-    digitalWrite(motorSurucuSol, HIGH);
-    digitalWrite(motorDriverEN, HIGH);
+    // Motor sürücüleri aktif et
+    digitalWrite(motorSagREN, HIGH);
+    digitalWrite(motorSagLEN, HIGH);
+    digitalWrite(motorSolREN, HIGH);
+    digitalWrite(motorSolLEN, HIGH);
+    
+    // Motorları durdur
+    analogWrite(motorSagRPWM, 0);
+    analogWrite(motorSagLPWM, 0);
+    analogWrite(motorSolRPWM, 0);
+    analogWrite(motorSolLPWM, 0);
 
     // Ultrasonik sensör pinlerini ayarla
     pinMode(uTrig, OUTPUT);
@@ -173,9 +168,6 @@ void setup() {
     for (int i = 0; i < sensorSayisi; i++) {
         pinMode(qtrPin[i], INPUT_PULLUP);
     }
-
-    // Batarya voltaj ölçümü için ADC ayarı
-    pinMode(batteryPin, INPUT);
     
     // Renk sensörünü başlat
     if (!tcs.begin()) {
@@ -335,35 +327,36 @@ void cizgiTakipRenk(String takipRenk, String durmaRenk) {
 }
 
 // Motor kontrol fonksiyonu - Motorların hız ve yönünü ayarlar
-void motorControl(int hedefSolHiz, int sagHiz) {
-    static int mevcutSolHiz = 0;
-    static int mevcutSagHiz = 0;
-    
-    // Ani hız değişimlerini sınırla
-    int solHizDegisim = constrain(hedefSolHiz - mevcutSolHiz, -MAX_HIZ_DEGISIMI, MAX_HIZ_DEGISIMI);
-    int sagHizDegisim = constrain(sagHiz - mevcutSagHiz, -MAX_HIZ_DEGISIMI, MAX_HIZ_DEGISIMI);
-    
-    // Yeni hızları hesapla
-    mevcutSolHiz += solHizDegisim;
-    mevcutSagHiz += sagHizDegisim;
-    
-    // Minimum hız kontrolü
-    if (abs(mevcutSolHiz) < MIN_MOTOR_HIZ && mevcutSolHiz != 0) {
-        mevcutSolHiz = (mevcutSolHiz > 0) ? MIN_MOTOR_HIZ : -MIN_MOTOR_HIZ;
-    }
-    if (abs(mevcutSagHiz) < MIN_MOTOR_HIZ && mevcutSagHiz != 0) {
-        mevcutSagHiz = (mevcutSagHiz > 0) ? MIN_MOTOR_HIZ : -MIN_MOTOR_HIZ;
-    }
-    
+void motorControl(int solHiz, int sagHiz) {
     // Hızları sınırla
-    mevcutSolHiz = constrain(mevcutSolHiz, -255, 255);
-    mevcutSagHiz = constrain(mevcutSagHiz, -255, 255);
+    solHiz = constrain(solHiz, -255, 255);
+    sagHiz = constrain(sagHiz, -255, 255);
     
-    // Motor çıkışlarını ayarla
-    analogWrite(motorL, abs(mevcutSolHiz));
-    analogWrite(motorR, abs(mevcutSagHiz));
-    digitalWrite(motorSurucuSol, mevcutSolHiz >= 0 ? HIGH : LOW);
-    digitalWrite(motorSurucuSag, mevcutSagHiz >= 0 ? HIGH : LOW);
+    // Sağ motor kontrolü
+    if (sagHiz >= 0) {
+        digitalWrite(motorSagREN, HIGH);  // İleri yönü aktif
+        digitalWrite(motorSagLEN, LOW);   // Geri yönü pasif
+        analogWrite(motorSagRPWM, sagHiz);
+        analogWrite(motorSagLPWM, 0);
+    } else {
+        digitalWrite(motorSagREN, LOW);   // İleri yönü pasif
+        digitalWrite(motorSagLEN, HIGH);  // Geri yönü aktif
+        analogWrite(motorSagRPWM, 0);
+        analogWrite(motorSagLPWM, -sagHiz);
+    }
+    
+    // Sol motor kontrolü
+    if (solHiz >= 0) {
+        digitalWrite(motorSolREN, HIGH);  // İleri yönü aktif
+        digitalWrite(motorSolLEN, LOW);   // Geri yönü pasif
+        analogWrite(motorSolRPWM, solHiz);
+        analogWrite(motorSolLPWM, 0);
+    } else {
+        digitalWrite(motorSolREN, LOW);   // İleri yönü pasif
+        digitalWrite(motorSolLEN, HIGH);  // Geri yönü aktif
+        analogWrite(motorSolRPWM, 0);
+        analogWrite(motorSolLPWM, -solHiz);
+    }
 }
 
 // Yumuşak durma fonksiyonu
@@ -585,17 +578,6 @@ int getQTRValue() {
     }
     return toplam / sensorSayisi;
 }
-
-// Batarya voltaj kontrolü
-void checkBatteryVoltage() {
-    int rawValue = analogRead(batteryPin);
-    float voltage = (rawValue * 3.3 * 2) / 4095.0;  // Voltaj bölücü ile
-    
-    if (voltage < 6.5) {  // Düşük voltaj eşiği
-        motorControl(0, 0);  // Motorları durdur
-        Serial.println("UYARI: Düşük batarya!");
-    }
-} 
 
 // Renk sensörü bağlantı kontrolü geliştirmesi
 bool checkSensorConnections() {
