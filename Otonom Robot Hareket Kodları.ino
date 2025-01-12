@@ -468,18 +468,65 @@ String detectColor(float r, float g, float b) {
     float h, s, v;
     rgbToHsv(r, g, b, h, s, v);  // RGB'den HSV'ye dönüşüm
 
-    // Düşük parlaklık ve doygunluk kontrolü
+    // Düşük parlaklık kontrolü
     if (v < 0.15) return "unknown";  // Çok karanlık
-    if (s < 0.20) return "unknown";  // Çok az doygunluk (beyaz/gri/siyah)
 
-    // Renk eşiklerini kontrol et
-    for (const auto& renk : RENK_ESIKLERI) {
-        if (h >= renk.hueMin && h <= renk.hueMax) {
-            return renk.name;  // Eşleşen rengi döndür
+    // Beyaz/Gri kontrolü - tüm değerler birbirine yakınsa
+    if (abs(r - g) < 20 && abs(g - b) < 20 && abs(r - b) < 20) return "unknown";
+
+    // Minimum renk yoğunluğu kontrolü
+    if (r < 30 && g < 30 && b < 30) return "unknown";
+
+    // MAVİ renk kontrolü
+    if (b > r * 1.2 && b > g * 1.2) {
+        if (h >= 190 && h <= 250) {
+            if (b > 60) {  // Minimum mavi yoğunluğu
+                return "blue";
+            }
         }
     }
 
-    return "unknown";  // Eşleşme bulunamazsa bilinmeyen renk
+    // YEŞİL renk kontrolü
+    if (g > r * 1.2 && g > b * 1.2) {
+        if (h >= 80 && h <= 160) {
+            if (g > 60) {  // Minimum yeşil yoğunluğu
+                return "green";
+            }
+        }
+    }
+
+    // SARI renk kontrolü
+    if (r > b * 1.5 && g > b * 1.5) {
+        if (abs(r - g) < 50) {  // Kırmızı ve yeşil yakın olmalı
+            if (h >= 40 && h <= 75) {
+                if (r > 60 && g > 60) {  // Minimum yoğunluk
+                    return "yellow";
+                }
+            }
+        }
+    }
+
+    // TURUNCU renk kontrolü
+    if (r > g * 1.2 && r > b * 2.0) {
+        if (g > b * 1.2) {  // Yeşil, maviden büyük olmalı
+            if (h >= 15 && h <= 39) {
+                if (r > 60) {  // Minimum kırmızı yoğunluğu
+                    return "orange";
+                }
+            }
+        }
+    }
+
+    // KIRMIZI renk kontrolü
+    if (r > g * 1.2 && r > b * 1.2) {
+        if (h >= 0 && h <= 15 || h >= 340 && h <= 360) { // Kırmızı ton aralığı
+            if (r > 60) { // Minimum kırmızı yoğunluğu
+                return "red";
+            }
+        }
+    }
+
+    return "unknown";
 }
 
 // PID kontrol ile çizgi takibi yapan fonksiyon
