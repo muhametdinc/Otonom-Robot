@@ -225,13 +225,13 @@ void loop() {
                 motorControl(0, 0); // Önce dur
                 // Bulunduğu konuma göre başlangıç noktasına dönüş
                 if(mevcutKonum == 1) {
-                    cizgiTakipRenk("red", "black");
+                    cizgiTakipRenk("black", "red"); // Önce siyah çizgiyi takip et, kırmızıda dur
                 } else if(mevcutKonum == 2) {
-                    cizgiTakipRenk("black", "black");
+                    cizgiTakipRenk("green", "red"); // Önce yeşil çizgiyi takip et, kırmızıda dur
                 } else if(mevcutKonum == 3) {
-                    cizgiTakipRenk("green", "black");
+                    cizgiTakipRenk("orange", "red"); // Önce turuncu çizgiyi takip et, kırmızıda dur
                 } else if(mevcutKonum == 4) {
-                    cizgiTakipRenk("orange", "black");
+                    cizgiTakipRenk("blue", "red"); // Önce mavi çizgiyi takip et, kırmızıda dur
                 }
                 mevcutKonum = 0;
             }
@@ -241,13 +241,13 @@ void loop() {
                 Serial.println("1. İstasyona gidiliyor...");
                 motorControl(0, 0); // Önce dur
                 if(mevcutKonum == 0) {
-                    cizgiTakipRenk("red", "black");
+                    cizgiTakipRenk("red", "black"); // Kırmızı çizgiyi takip et, siyahta dur
                 } else if(mevcutKonum == 2) {
-                    cizgiTakipRenk("black", "black");
+                    cizgiTakipRenk("green", "black"); // Yeşil çizgiyi takip et, siyahta dur
                 } else if(mevcutKonum == 3) {
-                    cizgiTakipRenk("green", "black");
+                    cizgiTakipRenk("orange", "black"); // Turuncu çizgiyi takip et, siyahta dur
                 } else if(mevcutKonum == 4) {
-                    cizgiTakipRenk("orange", "black");
+                    cizgiTakipRenk("blue", "black"); // Mavi çizgiyi takip et, siyahta dur
                 }
                 mevcutKonum = 1;
             }
@@ -257,13 +257,13 @@ void loop() {
                 Serial.println("2. İstasyona gidiliyor...");
                 motorControl(0, 0); // Önce dur
                 if(mevcutKonum == 0) {
-                    cizgiTakipRenk("red", "green");
+                    cizgiTakipRenk("red", "green"); // Kırmızı çizgiyi takip et, yeşilde dur
                 } else if(mevcutKonum == 1) {
-                    cizgiTakipRenk("black", "green");
+                    cizgiTakipRenk("black", "green"); // Siyah çizgiyi takip et, yeşilde dur
                 } else if(mevcutKonum == 3) {
-                    cizgiTakipRenk("green", "green");
+                    cizgiTakipRenk("orange", "green"); // Turuncu çizgiyi takip et, yeşilde dur
                 } else if(mevcutKonum == 4) {
-                    cizgiTakipRenk("orange", "green");
+                    cizgiTakipRenk("blue", "green"); // Mavi çizgiyi takip et, yeşilde dur
                 }
                 mevcutKonum = 2;
             }
@@ -273,13 +273,13 @@ void loop() {
                 Serial.println("3. İstasyona gidiliyor...");
                 motorControl(0, 0); // Önce dur
                 if(mevcutKonum == 0) {
-                    cizgiTakipRenk("red", "orange");
+                    cizgiTakipRenk("red", "orange"); // Kırmızı çizgiyi takip et, turuncuda dur
                 } else if(mevcutKonum == 1) {
-                    cizgiTakipRenk("black", "orange");
+                    cizgiTakipRenk("black", "orange"); // Siyah çizgiyi takip et, turuncuda dur
                 } else if(mevcutKonum == 2) {
-                    cizgiTakipRenk("green", "orange");
+                    cizgiTakipRenk("green", "orange"); // Yeşil çizgiyi takip et, turuncuda dur
                 } else if(mevcutKonum == 4) {
-                    cizgiTakipRenk("orange", "orange");
+                    cizgiTakipRenk("blue", "orange"); // Mavi çizgiyi takip et, turuncuda dur
                 }
                 mevcutKonum = 3;
             }
@@ -289,16 +289,13 @@ void loop() {
                 Serial.println("4. İstasyona gidiliyor...");
                 motorControl(0, 0); // Önce dur
                 if(mevcutKonum == 0) {
-                    // 0'dan 4'e özel rota: önce kırmızı sonra mavi
-                    cizgiTakipRenk("red", "blue");
-                    delay(100); // Kısa bekleme
-                    cizgiTakipRenk("blue", "blue");
+                    cizgiTakipRenk("red", "blue"); // Kırmızı çizgiyi takip et, mavide dur
                 } else if(mevcutKonum == 1) {
-                    cizgiTakipRenk("black", "blue");
+                    cizgiTakipRenk("black", "blue"); // Siyah çizgiyi takip et, mavide dur
                 } else if(mevcutKonum == 2) {
-                    cizgiTakipRenk("green", "blue");
+                    cizgiTakipRenk("green", "blue"); // Yeşil çizgiyi takip et, mavide dur
                 } else if(mevcutKonum == 3) {
-                    cizgiTakipRenk("orange", "blue");
+                    cizgiTakipRenk("orange", "blue"); // Turuncu çizgiyi takip et, mavide dur
                 }
                 mevcutKonum = 4;
             }
@@ -396,6 +393,25 @@ void istasyonaGit(int baslangic, int bitis) {
 
     motorControl(0, 0);
 
+    // Yön kontrolü ve tam tur dönüş kararı
+    bool tamTurGerekli = false;
+    
+    // Ters yönden gelme durumları
+    if ((baslangic == 3 && bitis == 1) ||
+        (baslangic == 4 && bitis == 2) ||
+        (baslangic == 2 && bitis == 0) ||
+        (baslangic == 1 && bitis == 3) ||
+        (baslangic == 2 && bitis == 4) ||
+        (baslangic == 0 && bitis == 2)) {
+        tamTurGerekli = true;
+    }
+
+    // Eğer ters yönden gelindiyse tam tur dön
+    if (tamTurGerekli) {
+        Serial.println("Ters yönden gelindiği için tam tur dönülüyor...");
+        tamTurDon(true);  // Saat yönünde tam tur
+    }
+
     // Geri dönüş gerektiren durumlar için tam tur
     bool geriDonus = false;
     if((baslangic == 1 && bitis == 0) ||
@@ -408,22 +424,16 @@ void istasyonaGit(int baslangic, int bitis) {
 
     // İstasyonlar arası hareket stratejileri
     switch(baslangic) {
-        case 0:
+        case 0:  // Başlangıç noktasından diğer istasyonlara
             switch(bitis) {
                 case 1:
                     cizgiTakipRenk("red", "black");
                     break;
                 case 2:
-                    cizgiTakipRenk("red", "black");
-                    delay(100);
-                    cizgiTakipRenk("black", "green");
+                    cizgiTakipRenk("red", "green");
                     break;
                 case 3:
-                    cizgiTakipRenk("red", "black");
-                    delay(100);
-                    cizgiTakipRenk("black", "green");
-                    delay(100);
-                    cizgiTakipRenk("green", "orange");
+                    cizgiTakipRenk("red", "orange");
                     break;
                 case 4:
                     cizgiTakipRenk("red", "blue");
@@ -431,7 +441,73 @@ void istasyonaGit(int baslangic, int bitis) {
             }
             break;
             
-        // Diğer case'ler benzer şekilde devam eder...
+        case 1:  // İstasyon 1'den diğer istasyonlara
+            switch(bitis) {
+                case 0:
+                    cizgiTakipRenk("black", "red");
+                    break;
+                case 2:
+                    cizgiTakipRenk("black", "green");
+                    break;
+                case 3:
+                    cizgiTakipRenk("black", "orange");
+                    break;
+                case 4:
+                    cizgiTakipRenk("black", "blue");
+                    break;
+            }
+            break;
+            
+        case 2:  // İstasyon 2'den diğer istasyonlara
+            switch(bitis) {
+                case 0:
+                    cizgiTakipRenk("green", "red");
+                    break;
+                case 1:
+                    cizgiTakipRenk("green", "black");
+                    break;
+                case 3:
+                    cizgiTakipRenk("green", "orange");
+                    break;
+                case 4:
+                    cizgiTakipRenk("green", "blue");
+                    break;
+            }
+            break;
+            
+        case 3:  // İstasyon 3'ten diğer istasyonlara
+            switch(bitis) {
+                case 0:
+                    cizgiTakipRenk("orange", "red");
+                    break;
+                case 1:
+                    cizgiTakipRenk("orange", "black");
+                    break;
+                case 2:
+                    cizgiTakipRenk("orange", "green");
+                    break;
+                case 4:
+                    cizgiTakipRenk("orange", "blue");
+                    break;
+            }
+            break;
+            
+        case 4:  // İstasyon 4'ten diğer istasyonlara
+            switch(bitis) {
+                case 0:
+                    cizgiTakipRenk("blue", "red");
+                    break;
+                case 1:
+                    cizgiTakipRenk("blue", "black");
+                    break;
+                case 2:
+                    cizgiTakipRenk("blue", "green");
+                    break;
+                case 3:
+                    cizgiTakipRenk("blue", "orange");
+                    break;
+            }
+            break;
     }
 
     if(geriDonus) {
